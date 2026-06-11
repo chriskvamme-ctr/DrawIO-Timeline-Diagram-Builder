@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/timeline.schema.json",
+  "title": "Timeline Builder Reviewed Timeline",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "source_file",
+    "date_range",
+    "lanes",
+    "events",
+    "warnings"
+  ],
+  "properties": {
+    "unit_id": {
+      "type": "string"
+    },
+    "source_file": {
+      "type": "string"
+    },
+    "date_range": {
+      "type": "object",
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date"
+        },
+        "end": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
+    },
+    "lanes": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "const": "incident"
+        },
+        {
+          "const": "date"
+        },
+        {
+          "const": "component_replacement"
+        },
+        {
+          "const": "other"
+        }
+      ],
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "source_row",
+          "reason",
+          "action"
+        ],
+        "properties": {
+          "source_row": {
+            "type": "integer"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "not_rendered",
+              "needs_review",
+              "duplicate_merged"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "event": {
+      "type": "object",
+      "required": [
+        "event_id",
+        "lane",
+        "date",
+        "end_date",
+        "title",
+        "details",
+        "issue_key",
+        "component",
+        "source_rows",
+        "source_fields",
+        "confidence",
+        "inferred"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string"
+        },
+        "lane": {
+          "type": "string",
+          "enum": [
+            "incident",
+            "component_replacement",
+            "other"
+          ]
+        },
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "end_date": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "details": {
+          "type": "string"
+        },
+        "issue_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "component": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_rows": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1
+        },
+        "source_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "inferred": {
+          "type": "boolean"
+        },
+        "source_datetime": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional compact source timestamp for visual labels."
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

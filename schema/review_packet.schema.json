@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/review_packet.schema.json",
+  "title": "Timeline Builder Review Packet",
+  "type": "object",
+  "required": [
+    "source_file",
+    "draft_timeline_file",
+    "generated_at",
+    "review_threshold",
+    "draft_summary",
+    "review_items",
+    "low_confidence_events",
+    "warnings",
+    "instructions_summary"
+  ],
+  "properties": {
+    "packet_type": { "type": "string" },
+    "source_file": { "type": "string" },
+    "draft_timeline_file": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+    "generated_at": { "type": "string" },
+    "review_threshold": { "type": "number" },
+    "draft_summary": { "type": "object" },
+    "review_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "review_id",
+          "reason",
+          "source_row",
+          "issue_key",
+          "issue_type",
+          "summary",
+          "created",
+          "resolved",
+          "status",
+          "assignee",
+          "priority",
+          "labels",
+          "comments",
+          "python_suggestion",
+          "allowed_actions"
+        ],
+        "properties": {
+          "review_id": { "type": "string" },
+          "reason": { "type": "string" },
+          "source_row": { "type": "integer" },
+          "issue_key": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "issue_type": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "summary": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "created": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "resolved": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "status": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "assignee": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "priority": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "labels": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+          "comments": { "type": "array" },
+          "python_suggestion": { "type": "string" },
+          "allowed_actions": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": true
+      }
+    },
+    "low_confidence_events": { "type": "array" },
+    "warnings": { "type": "array" },
+    "instructions_summary": { "type": "string" }
+  },
+  "additionalProperties": true
+}

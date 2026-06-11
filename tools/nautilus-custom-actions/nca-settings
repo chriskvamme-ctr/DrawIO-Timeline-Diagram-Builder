@@ -1,0 +1,278 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+APP_DIR = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "nautilus-custom-actions"
+CONFIG_PATH = APP_DIR / "actions.json"
+
+DEFAULT_ACTION = {
+    "enabled": True,
+    "label": "Launch thing with the thingy",
+    "command": "xdg-open {path}",
+    "extensions": [],
+    "mime_types": [],
+    "selection": "single",
+    "include_dirs": False,
+    "terminal": False,
+    "description": "Example action. Edit with nca-settings.",
+}
+DEFAULT_CONFIG = {"actions": []}
+
+
+def ensure_config() -> None:
+    APP_DIR.mkdir(parents=True, exist_ok=True)
+    if not CONFIG_PATH.exists():
+        save_config(DEFAULT_CONFIG)
+
+
+def load_config() -> Dict[str, Any]:
+    ensure_config()
+    try:
+        data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return {"actions": []}
+        if not isinstance(data.get("actions"), list):
+            data["actions"] = []
+        return data
+    except Exception as exc:
+        print(f"Could not read {CONFIG_PATH}: {exc}", file=sys.stderr)
+        return {"actions": []}
+
+
+def save_config(data: Dict[str, Any]) -> None:
+    APP_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = CONFIG_PATH.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(CONFIG_PATH)
+
+
+def csv_to_list(text: str, *, extensions: bool = False) -> List[str]:
+    items = []
+    for raw in text.split(","):
+        item = raw.strip()
+        if not item:
+            continue
+        if extensions and not item.startswith(".") and not item.startswith("*"):
+            item = "." + item
+        items.append(item)
+    return items
+
+
+def list_to_csv(items: Any) -> str:
+    if not items:
+        return ""
+    if isinstance(items, str):
+        return items
+    return ", ".join(str(item) for item in items)
+
+
+def yn(prompt: str, default: bool) -> bool:
+    suffix = "Y/n" if default else "y/N"
+    answer = input(f"{prompt} [{suffix}]: ").strip().lower()
+    if not answer:
+        return default
+    return answer in {"y", "yes", "true", "1", "on"}
+
+
+def prompt_text(prompt: str, default: str = "") -> str:
+    if default:
+        value = input(f"{prompt} [{default}]: ").strip()
+        return value if value else default
+    return input(f"{prompt}: ").strip()
+
+
+def prompt_action(existing: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    action = dict(DEFAULT_ACTION)
+    if existing:
+        action.update(existing)
+
+    print("\nPlaceholders you can use in commands:")
+    print("  {path}   first selected file/folder, shell-quoted")
+    print("  {paths}  all selected files/folders, shell-quoted")
+    print("  {uri}, {uris}, {name}, {names}, {dir}")
+    print("Example:  code {path}")
+    print("Example:  ffmpeg -i {path} {dir}/output.mp4\n")
+
+    action["enabled"] = yn("Enabled", bool(action.get("enabled", True)))
+    action["label"] = prompt_text("Right-click label", str(action.get("label", "")))
+    action["command"] = prompt_text("Command to run", str(action.get("command", "")))
+
+    selection = str(action.get("selection", "single")).lower()
+    selection = prompt_text("Selection mode: single, multiple, or any", selection).lower()
+    if selection not in {"single", "multiple", "any"}:
+        print("Unknown selection mode; using single.")
+        selection = "single"
+    action["selection"] = selection
+
+    action["include_dirs"] = yn("Show when folders are selected", bool(action.get("include_dirs", False)))
+    action["terminal"] = yn("Run in a terminal window", bool(action.get("terminal", False)))
+    action["description"] = prompt_text("Optional tooltip/description", str(action.get("description", "")))
+
+    ext_default = list_to_csv(action.get("extensions", []))
+    ext_text = prompt_text("Extensions to show for, comma-separated; blank = all", ext_default)
+    action["extensions"] = csv_to_list(ext_text, extensions=True)
+
+    mime_default = list_to_csv(action.get("mime_types", []))
+    mime_text = prompt_text("MIME types to show for, comma-separated; blank = all, e.g. image/*, text/plain", mime_default)
+    action["mime_types"] = csv_to_list(mime_text)
+
+    return action
+
+
+def print_actions(data: Dict[str, Any]) -> None:
+    actions = data.get("actions", [])
+    if not actions:
+        print("No actions configured.")
+        return
+    print(f"Config: {CONFIG_PATH}\n")
+    for i, action in enumerate(actions, start=1):
+        status = "enabled" if action.get("enabled", True) else "disabled"
+        exts = list_to_csv(action.get("extensions", [])) or "all"
+        mimes = list_to_csv(action.get("mime_types", [])) or "all"
+        dirs = "yes" if action.get("include_dirs", False) else "no"
+        term = "yes" if action.get("terminal", False) else "no"
+        print(f"{i}. {action.get('label', '(no label)')}  [{status}]")
+        print(f"   command: {action.get('command', '')}")
+        print(f"   selection: {action.get('selection', 'single')} | folders: {dirs} | terminal: {term}")
+        print(f"   extensions: {exts} | MIME: {mimes}")
+
+
+def restart_nautilus_hint() -> None:
+    print("\nChanges are saved. If the menu does not update immediately, run: nautilus -q")
+
+
+def interactive() -> None:
+    data = load_config()
+    while True:
+        print("\n=== Nautilus Custom Actions Settings ===")
+        print_actions(data)
+        print("Actions: [a]dd  [e]dit  [d]elete  [t]oggle  [o]pen raw JSON  [q]uit")
+        choice = input("> ").strip().lower()
+        if choice in {"q", "quit", "exit"}:
+            break
+        if choice in {"a", "add"}:
+            data.setdefault("actions", []).append(prompt_action())
+            save_config(data)
+            restart_nautilus_hint()
+        elif choice in {"e", "edit"}:
+            index = ask_index(data)
+            if index is not None:
+                data["actions"][index] = prompt_action(data["actions"][index])
+                save_config(data)
+                restart_nautilus_hint()
+        elif choice in {"d", "delete"}:
+            index = ask_index(data)
+            if index is not None:
+                removed = data["actions"].pop(index)
+                save_config(data)
+                print(f"Deleted: {removed.get('label', '(no label)')}")
+                restart_nautilus_hint()
+        elif choice in {"t", "toggle"}:
+            index = ask_index(data)
+            if index is not None:
+                data["actions"][index]["enabled"] = not bool(data["actions"][index].get("enabled", True))
+                save_config(data)
+                restart_nautilus_hint()
+        elif choice in {"o", "open"}:
+            open_raw_json()
+        else:
+            print("Unknown choice.")
+
+
+def ask_index(data: Dict[str, Any]) -> Optional[int]:
+    actions = data.get("actions", [])
+    if not actions:
+        print("No actions configured.")
+        return None
+    raw = input(f"Action number 1-{len(actions)}: ").strip()
+    try:
+        index = int(raw) - 1
+    except ValueError:
+        print("Not a number.")
+        return None
+    if not 0 <= index < len(actions):
+        print("Out of range.")
+        return None
+    return index
+
+
+def open_raw_json() -> None:
+    ensure_config()
+    editor = os.environ.get("EDITOR")
+    candidates = []
+    if editor:
+        candidates.append(editor)
+    candidates.extend(["gedit", "gnome-text-editor", "nano", "vi"])
+    for candidate in candidates:
+        try:
+            subprocess.call([candidate, str(CONFIG_PATH)])
+            return
+        except FileNotFoundError:
+            continue
+    print(f"Open this file manually: {CONFIG_PATH}")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Configure Nautilus Custom Actions.")
+    parser.add_argument("--list", action="store_true", help="List configured actions")
+    parser.add_argument("--add", action="store_true", help="Add an action")
+    parser.add_argument("--edit", type=int, metavar="N", help="Edit action number N")
+    parser.add_argument("--delete", type=int, metavar="N", help="Delete action number N")
+    parser.add_argument("--toggle", type=int, metavar="N", help="Toggle action number N")
+    parser.add_argument("--config", action="store_true", help="Print config path")
+    args = parser.parse_args()
+
+    data = load_config()
+
+    if args.config:
+        print(CONFIG_PATH)
+        return 0
+    if args.list:
+        print_actions(data)
+        return 0
+    if args.add:
+        data.setdefault("actions", []).append(prompt_action())
+        save_config(data)
+        restart_nautilus_hint()
+        return 0
+    if args.edit is not None:
+        index = args.edit - 1
+        if not 0 <= index < len(data.get("actions", [])):
+            print("Action number out of range.", file=sys.stderr)
+            return 2
+        data["actions"][index] = prompt_action(data["actions"][index])
+        save_config(data)
+        restart_nautilus_hint()
+        return 0
+    if args.delete is not None:
+        index = args.delete - 1
+        if not 0 <= index < len(data.get("actions", [])):
+            print("Action number out of range.", file=sys.stderr)
+            return 2
+        data["actions"].pop(index)
+        save_config(data)
+        restart_nautilus_hint()
+        return 0
+    if args.toggle is not None:
+        index = args.toggle - 1
+        if not 0 <= index < len(data.get("actions", [])):
+            print("Action number out of range.", file=sys.stderr)
+            return 2
+        data["actions"][index]["enabled"] = not bool(data["actions"][index].get("enabled", True))
+        save_config(data)
+        restart_nautilus_hint()
+        return 0
+
+    interactive()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

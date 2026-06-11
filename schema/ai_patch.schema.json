@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/ai_patch.schema.json",
+  "title": "Timeline Builder AI Patch",
+  "type": "object",
+  "required": [
+    "summary",
+    "debug_report",
+    "event_edits",
+    "new_events",
+    "event_removals",
+    "warnings_to_keep",
+    "human_review_needed",
+    "blockers"
+  ],
+  "properties": {
+    "summary": {
+      "type": "string"
+    },
+    "debug_report": {
+      "type": "object"
+    },
+    "review_decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "review_id",
+          "action",
+          "reason",
+          "source_rows"
+        ],
+        "properties": {
+          "review_id": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "create_event",
+              "edit_event",
+              "remove_event",
+              "keep_warning",
+              "mark_needs_human_review",
+              "no_change"
+            ]
+          },
+          "event_id": {
+            "type": "string"
+          },
+          "new_event_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "source_rows": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "event_edits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "event_id",
+          "changes",
+          "reason",
+          "source_rows"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "changes": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "details": {
+                "type": "string"
+              },
+              "lane": {
+                "type": "string",
+                "enum": [
+                  "incident",
+                  "component_replacement",
+                  "other"
+                ]
+              },
+              "component": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "inferred": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false,
+            "minProperties": 1
+          },
+          "reason": {
+            "type": "string"
+          },
+          "source_rows": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "new_events": {
+      "type": "array",
+      "items": {
+        "$ref": "timeline.schema.json#/$defs/event"
+      }
+    },
+    "event_removals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "event_id",
+          "reason",
+          "source_rows"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "source_rows": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "warnings_to_keep": {
+      "type": "array"
+    },
+    "human_review_needed": {
+      "type": "array"
+    },
+    "blockers": {
+      "type": "array"
+    },
+    "reviewed_source_rows": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "description": "Optional legacy coverage list. Prefer review_decisions for each review item."
+    },
+    "reviewed_review_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Optional legacy coverage list. Prefer review_decisions for each review item."
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,68 @@
+{
+  "unit_id": "UNIT-42",
+  "source_file": "jira_export_numbered.csv",
+  "date_range": {
+    "start": "2026-01-26",
+    "end": "2026-02-26"
+  },
+  "lanes": ["incident", "date", "component_replacement", "other"],
+  "events": [
+    {
+      "event_id": "E001",
+      "lane": "incident",
+      "date": "2026-01-26",
+      "end_date": null,
+      "title": "INC-1001 - Motor overtemp fault",
+      "details": "Unit reported repeated motor overtemp fault during startup.",
+      "issue_key": "INC-1001",
+      "component": null,
+      "source_rows": [1],
+      "source_fields": ["Issue key", "Summary", "Created", "Comments"],
+      "confidence": 0.98,
+      "inferred": false
+    },
+    {
+      "event_id": "E002",
+      "lane": "incident",
+      "date": "2026-02-26",
+      "end_date": null,
+      "title": "INC-1020 - Encoder signal loss",
+      "details": "Intermittent loss of encoder signal during operation.",
+      "issue_key": "INC-1020",
+      "component": null,
+      "source_rows": [2],
+      "source_fields": ["Issue key", "Summary", "Created", "Comments"],
+      "confidence": 0.97,
+      "inferred": false
+    },
+    {
+      "event_id": "E003",
+      "lane": "component_replacement",
+      "date": "2026-02-26",
+      "end_date": null,
+      "title": "Replaced encoder cable",
+      "details": "Comment says the encoder cable was swapped and the unit was retested.",
+      "issue_key": "INC-1020",
+      "component": "Encoder cable",
+      "source_rows": [2],
+      "source_fields": ["Comments"],
+      "confidence": 0.88,
+      "inferred": true
+    },
+    {
+      "event_id": "E004",
+      "lane": "other",
+      "date": "2026-02-26",
+      "end_date": null,
+      "title": "Retested unit",
+      "details": "Comment indicates follow-up testing after cable replacement.",
+      "issue_key": "INC-1020",
+      "component": null,
+      "source_rows": [2],
+      "source_fields": ["Comments"],
+      "confidence": 0.82,
+      "inferred": true
+    }
+  ],
+  "warnings": []
+}
