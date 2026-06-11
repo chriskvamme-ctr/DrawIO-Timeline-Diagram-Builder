@@ -121,24 +121,7 @@ The patch JSON includes:
 
 Python rejects patches that remove traceability, reference missing event IDs, use unsupported lanes, omit source rows/source fields for new events, use source rows that were not in the draft/review packet, use unsupported event dates when packet date support is available, return a full replacement timeline when a patch was expected, or fail to account for every review item in the review packet. The preferred way to account for review items is `review_decisions`: one concise decision per `review_items[].review_id`. This lets the AI make only one decision for each review item while Python keeps ownership of the full timeline.
 
-## Version and launcher troubleshooting
-
-The source of truth for the app version is the root `VERSION` file. The Python package exposes the same value as `timeline_builder.__version__`, and the GUI title/header and CLI `--version` output use that value.
-
-If the GUI still looks old, reinstall the launcher from the newly extracted project folder:
-
-```bash
-tools/install_gui_launcher.sh
-```
-
-Then confirm the launcher target:
-
-```bash
-cat "$(which timeline-builder)"
-timeline-builder  # window title should match VERSION
-```
-
-The GUI also logs the project root it is running from on startup.
+>Everything below is additional information that may be useful. But the key information for the workflow is above. 
 
 ## Command-line usage
 
